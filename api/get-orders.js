@@ -1,9 +1,19 @@
 import { google } from 'googleapis';
 
 export default async function handler(req, res) {
+  // ===== CORS =====
+  res.setHeader('Access-Control-Allow-Origin', '*'); // permette qualsiasi origine
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Risposta per preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     const auth = new google.auth.GoogleAuth({
-      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT), // chiave service account
+      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT),
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     });
 
