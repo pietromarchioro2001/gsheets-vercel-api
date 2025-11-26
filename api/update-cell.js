@@ -14,8 +14,19 @@ async function authClient() {
 }
 
 module.exports = async (req, res) => {
+  // ===== CORS =====
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Risposta per preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
-    if (req.method !== 'POST') return res.status(405).send({ error: 'Method not allowed' });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
     const body = await new Promise((resolve, reject) => {
       let data = '';
       req.on('data', chunk => data += chunk);
@@ -25,7 +36,7 @@ module.exports = async (req, res) => {
 
     const { range, sheet, row, col, value } = body;
     if (!range && !(sheet && typeof row === 'number' && typeof col === 'number')) {
-      return res.status(400).send({ error: 'range or sheet+row+col required' });
+      return res.status(400).json({ error: 'range or sheet+row+col required' });
     }
 
     const auth = await authClient();
@@ -52,9 +63,10 @@ module.exports = async (req, res) => {
       resource: { values: [[value]] }
     });
 
-    res.status(200).send({ ok: true, range: targetRange });
+    res.status(200).json({ ok: true, range: targetRange });
+
   } catch (err) {
     console.error('update-cell error', err);
-    res.status(500).send({ error: err.message || err.toString() });
+    res.status(500).json({ error: err.message || err.toString() });
   }
 };
