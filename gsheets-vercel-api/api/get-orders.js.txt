@@ -1,34 +1,25 @@
-const { google } = require('googleapis');
+import { google } from 'googleapis';
 
-async function authClient() {
-  const saBase64 = process.env.SERVICE_ACCOUNT_BASE64;
-  const saJson = JSON.parse(Buffer.from(saBase64, 'base64').toString('utf8'));
-  const jwt = new google.auth.JWT(
-    saJson.client_email,
-    null,
-    saJson.private_key,
-    ['https://www.googleapis.com/auth/spreadsheets']
-  );
-  await jwt.authorize();
-  return jwt;
-}
-
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   try {
-    const auth = await authClient();
-    const sheets = google.sheets({ version: 'v4', auth });
-    const spreadsheetId = process.env.SHEET_ID;
-    const sheetName = process.env.SHEET_NAME || 'ORDINI';
-
-    const r = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: sheetName
+    const auth = new google.auth.GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT), // chiave service account
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     });
 
-    res.setHeader('Content-Type', 'application/json');
-    res.status(200).send(JSON.stringify({ values: r.data.values || [] }));
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const SHEET_ID = '18pGALej-Xpwo4Yih1zYCBJZjPE6r2jk9MXihSLzci-k';
+    const SHEET_NAME = 'ORDINI';
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: SHEET_NAME,
+    });
+
+    res.status(200).json({ values: response.data.values || [] });
   } catch (err) {
-    console.error('get-orders error', err);
-    res.status(500).send({ error: err.message || err.toString() });
+    console.error(err);
+    res.status(500).json({ error: 'Errore lettura Sheet' });
   }
-};
+}
